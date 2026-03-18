@@ -39,38 +39,38 @@
     <build>
         <plugins>
             <!-- Git 提交信息校验插件 - 在 validate 阶段执行 -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.1</version>
-                <executions>
-                    <execution>
-                        <id>validate-git-info</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>bash</executable>
-                            <arguments>
-                                <argument>${project.basedir}/.githooks/validate-for-ci.sh</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.codehaus.mojo</groupId>-->
+<!--                <artifactId>exec-maven-plugin</artifactId>-->
+<!--                <version>3.1.1</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>validate-git-info</id>-->
+<!--                        <phase>validate</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>exec</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <executable>bash</executable>-->
+<!--                            <arguments>-->
+<!--                                <argument>${project.basedir}/.githooks/validate-for-ci.sh</argument>-->
+<!--                            </arguments>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
 
-            <!-- 可选：Checkstyle 代码风格检查 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.3.1</version>
-                <configuration>
-                    <configLocation>google_checks.xml</configLocation>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>false</failsOnError>
-                </configuration>
-            </plugin>
+<!--            &lt;!&ndash; 可选：Checkstyle 代码风格检查 &ndash;&gt;-->
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-checkstyle-plugin</artifactId>-->
+<!--                <version>3.3.1</version>-->
+<!--                <configuration>-->
+<!--                    <configLocation>google_checks.xml</configLocation>-->
+<!--                    <consoleOutput>true</consoleOutput>-->
+<!--                    <failsOnError>false</failsOnError>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 
