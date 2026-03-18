@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.lendea</groupId>
+    <artifactId>java-study-code</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Java Study Code</name>
+    <description>Java 学习代码集合 - Git 提交规范校验</description>
+
+    <!-- 聚合子模块 -->
+    <modules>
+        <module>java_common_mistakes</module>
+        <module>java_design_pattern</module>
+        <module>java_netty</module>
+        <module>kafka_demo</module>
+        <module>auth</module>
+        <module>springsecurity_demo</module>
+        <module>rmi</module>
+        <module>springsecurity_demo02</module>
+        <module>micrometedemo</module>
+        <module>ratelimit</module>
+        <module>concurrent</module>
+        <module>servletTest</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
+
+    <build>
+        <plugins>
+            <!-- Git 提交信息校验插件 - 在 validate 阶段执行 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <id>validate-git-info</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>bash</executable>
+                            <arguments>
+                                <argument>${project.basedir}/.githooks/validate-for-ci.sh</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 可选：Checkstyle 代码风格检查 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <configLocation>google_checks.xml</configLocation>
+                    <consoleOutput>true</consoleOutput>
+                    <failsOnError>false</failsOnError>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- 配置插件管理 -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- 统一管理依赖版本 -->
+        </dependencies>
+    </dependencyManagement>
+
+</project>
