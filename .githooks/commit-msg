@@ -1,7 +1,13 @@
 #!/bin/bash
-# commit-msg hook - 校验 Commit Message 格式
+# commit-msg hook - 本地校验 + 接口增强（混合架构）
 
 set -e
+
+# ========== 配置 ==========
+API_URL="http://localhost:8088/api/git/validate/message"
+ENABLE_API_CALL=true      # 是否启用接口校验
+TIMEOUT=5                 # 接口超时时间（秒）
+OFFLINE_MODE=false        # 离线模式（仅本地校验）
 
 # 颜色定义
 RED='\033[0;31m'
@@ -12,54 +18,117 @@ NC='\033[0m' # No Color
 COMMIT_MSG_FILE=$1
 COMMIT_MSG=$(head -n1 "$COMMIT_MSG_FILE")
 
+# ========== 本地校验函数 ==========
+local_validate_message() {
+    local msg="$1"
+    local has_error=false
+
+    # 规则1: 不能为空
+    if [ -z "$msg" ]; then
+        echo -e "${RED}错误：Commit message 不能为空${NC}"
+        return 1
+    fi
+
+    # 规则2: 长度检查（10-100字符）
+    local msg_length=${#msg}
+    if [ "$msg_length" -lt 10 ]; then
+        echo -e "${RED}错误：Commit message 太短（${msg_length} 字符），至少需要 10 个字符${NC}"
+        has_error=true
+    fi
+
+    if [ "$msg_length" -gt 100 ]; then
+        echo -e "${RED}错误：Commit message 太长（${msg_length} 字符），最多 100 个字符${NC}"
+        has_error=true
+    fi
+
+    # 规则3: 不能以空格开头或结尾
+    if [[ "$msg" =~ ^[[:space:]] ]]; then
+        echo -e "${RED}错误：Commit message 不能以空格开头${NC}"
+        has_error=true
+    fi
+
+    if [[ "$msg" =~ [[:space:]]$ ]]; then
+        echo -e "${RED}错误：Commit message 不能以空格结尾${NC}"
+        has_error=true
+    fi
+
+    # 规则4: 不能以句号结尾
+    if [[ "$msg" =~ [。.]$ ]]; then
+        echo -e "${RED}错误：Commit message 不能以句号（.或。）结尾${NC}"
+        has_error=true
+    fi
+
+    # 规则5: 必须包含中文或英文内容（不能全是数字或符号）
+    if ! echo "$msg" | grep -qE '[一-龥a-zA-Z]'; then
+        echo -e "${RED}错误：Commit message 必须包含中文或英文字符${NC}"
+        has_error=true
+    fi
+
+    if [ "$has_error" = true ]; then
+        return 1
+    fi
+    return 0
+}
+
+# ========== 开始校验 ==========
 echo "========================================"
 echo "Commit Message 校验"
 echo "========================================"
 
-# 规则1: 不能为空
-if [ -z "$COMMIT_MSG" ]; then
-    echo -e "${RED}错误：Commit message 不能为空${NC}"
-    exit 1
-fi
+# ========== [1/2] 本地校验 ==========
+echo "[1/2] 本地校验 commit message..."
 
-# 规则2: 长度检查（10-100字符）
-MSG_LENGTH=${#COMMIT_MSG}
-if [ "$MSG_LENGTH" -lt 10 ]; then
-    echo -e "${RED}错误：Commit message 太短（${MSG_LENGTH} 字符），至少需要 10 个字符${NC}"
+# 本地快速校验
+if ! local_validate_message "$COMMIT_MSG"; then
     echo "当前内容: $COMMIT_MSG"
     exit 1
 fi
 
-if [ "$MSG_LENGTH" -gt 100 ]; then
-    echo -e "${RED}错误：Commit message 太长（${MSG_LENGTH} 字符），最多 100 个字符${NC}"
-    echo "当前内容: ${COMMIT_MSG:0:50}..."
-    exit 1
-fi
-
-# 规则3: 不能以空格开头或结尾
-if [[ "$COMMIT_MSG" =~ ^[[:space:]] ]]; then
-    echo -e "${RED}错误：Commit message 不能以空格开头${NC}"
-    exit 1
-fi
-
-if [[ "$COMMIT_MSG" =~ [[:space:]]$ ]]; then
-    echo -e "${RED}错误：Commit message 不能以空格结尾${NC}"
-    exit 1
-fi
-
-# 规则4: 不能以句号结尾
-if [[ "$COMMIT_MSG" =~ [。.]$ ]]; then
-    echo -e "${RED}错误：Commit message 不能以句号（.或。）结尾${NC}"
-    exit 1
-fi
-
-# 规则5: 必须包含中文或英文内容（不能全是数字或符号）
-if ! echo "$COMMIT_MSG" | grep -qE '[一-龥a-zA-Z]'; then
-    echo -e "${RED}错误：Commit message 必须包含中文或英文字符${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Commit message 校验通过${NC}"
+echo -e "${GREEN}✓ 本地校验通过${NC}"
 echo "提交信息: $COMMIT_MSG"
+
+# ========== [2/2] 接口校验（可选）==========
+if [ "$ENABLE_API_CALL" = true ] && [ "$OFFLINE_MODE" = false ]; then
+    echo "[2/2] 执行服务端校验..."
+
+    # URL 编码 commit message（简单处理）
+    ENCODED_MSG=$(echo "$COMMIT_MSG" | sed 's/ /%20/g; s/"/%22/g; s/#/%23/g; s/&/%26/g')
+
+    # 发送请求
+    RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -X POST "$API_URL" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "commitMessage=$ENCODED_MSG" \
+        --max-time $TIMEOUT 2>/dev/null || echo "")
+
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    BODY=$(echo "$RESPONSE" | sed '$d')
+
+    # 处理响应
+    if [ "$HTTP_CODE" = "200" ] && [ -n "$BODY" ]; then
+        # 解析结果
+        if echo "$BODY" | grep -q '"valid":true'; then
+            echo -e "${GREEN}✓ 服务端校验通过${NC}"
+        else
+            echo -e "${RED}❌ 服务端校验失败：${NC}"
+            # 提取错误信息
+            ERRORS=$(echo "$BODY" | grep -o '"errors":\[[^]]*\]' | sed 's/"errors":\[//;s/\]//' | tr ',' '\n' | sed 's/"//g')
+            if [ -n "$ERRORS" ]; then
+                echo "$ERRORS" | while read -r error; do
+                    echo "   - $error"
+                done
+            else
+                echo "   $BODY"
+            fi
+            exit 1
+        fi
+    else
+        # 接口调用失败，降级为仅本地校验
+        echo -e "${YELLOW}⚠ 服务端校验不可用（HTTP ${HTTP_CODE:-无响应}），使用本地校验结果${NC}"
+    fi
+else
+    echo "[2/2] 跳过服务端校验（离线模式）"
+fi
+
 echo "========================================"
 exit 0

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/security
+       http://www.springframework.org/schema/security/spring-security.xsd">
+
+    <!-- 向容器中注入了一个 BCryptPasswordEncoder -->
+    <bean class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" id="bCryptPasswordEncoder" />
+
+    <!-- SpringSecurity配置文件 -->
+    <!--
+        auto-config:表示自动加载SpringSecurity的配置文件
+        use-expressions：表示使用Spring的EL表达式
+     -->
+
+    <security:http auto-config="true" use-expressions="true">
+        <security:intercept-url pattern="/login.jsp" access="permitAll()" />
+        <!--
+            拦截资源
+            pattern="/**" 拦截所有的资源
+            access="hasAnyRole('ROLE_USER')" 表示只有ROLE_USER 这个角色可以访问资源
+         -->
+        <security:intercept-url pattern="/**" access="hasAnyRole('ROLE_USER')" ></security:intercept-url>
+        <!---认证信息 -->
+        <security:form-login login-page="/login.jsp"
+                             login-processing-url="/login"
+                             default-target-url="/home.jsp"
+
+        />
+
+        <!--<security:csrf disabled="true" />-->
+        <!-- 开启记住我的功能 -->
+        <security:remember-me
+                token-validity-seconds="60"
+                data-source-ref="dataSource"
+                remember-me-parameter="remember-me" />
+        <security:access-denied-handler error-page="/error.jsp" />
+    </security:http>
+    <!-- 认证用户信息 -->
+    <security:authentication-manager>
+        <security:authentication-provider user-service-ref="userServiceImpl">
+            <!--<security:user-service >
+                &lt;!&ndash; 设置一个账号 zhangsan 密码123 {noop} 表示不加密 具有的角色是  ROLE_USER&ndash;&gt;
+                <security:user name="zhangsan" authorities="ROLE_USER" password="{noop}123" ></security:user>
+                <security:user name="lisi" authorities="ROLE_USER" password="{noop}123456" ></security:user>
+            </security:user-service>-->
+            <security:password-encoder ref="bCryptPasswordEncoder" />
+        </security:authentication-provider>
+    </security:authentication-manager>
+</beans>

@@ -1,9 +1,14 @@
 package com.example.dao;
+
+import com.example.pojo.SysUser;
+
 /**
-* @project JavaStudyCode
-* @description 
-* @author lendea
-* @date 2024/03/29 10:15
-**/
-public class UserMapper {
+ * @author lendea
+ * @project JavaStudyCode
+ * @description
+ * @date 2024/03/29 10:15
+ **/
+public interface UserMapper {
+
+    public SysUser queryUserByUsername(String username);
 }

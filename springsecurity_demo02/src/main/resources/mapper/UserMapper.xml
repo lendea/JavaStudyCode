@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 使用接口 代理的方式 namespace必须和接口的全路径名称一致 -->
+<mapper namespace="com.example.dao.UserMapper">
+    <select id="queryUserByUsername" resultType="com.example.pojo.SysUser">
+        select id,username userName ,password,salt
+        from t_user
+        where username = #{userName}
+    </select>
+</mapper>

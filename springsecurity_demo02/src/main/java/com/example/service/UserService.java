@@ -1,9 +1,13 @@
 package com.example.service;
+
+import org.springframework.security.core.userdetails.UserDetailsService;
+
 /**
-* @project JavaStudyCode
-* @description 
-* @author lendea
-* @date 2024/03/29 09:47
-**/
-public class UserService {
+ * @author lendea
+ * @project JavaStudyCode
+ * @description
+ * @date 2024/03/29 09:47
+ **/
+public interface UserService extends UserDetailsService {
+
 }

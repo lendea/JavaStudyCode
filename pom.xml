@@ -25,6 +25,7 @@
         <module>micrometedemo</module>
         <module>ratelimit</module>
         <module>concurrent</module>
+        <module>git-validate-service</module>
         <!-- 注意：servletTest 是 IntelliJ 模块，没有 pom.xml，不参与 Maven 构建 -->
     </modules>
 

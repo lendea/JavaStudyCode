@@ -1,7 +1,13 @@
 #!/bin/bash
-# pre-commit hook - 校验 Git 用户信息
+# pre-commit hook - 本地校验 + 接口增强（混合架构）
 
 set -e
+
+# ========== 配置 ==========
+API_URL="http://localhost:8088/api/git/validate/user"
+ENABLE_API_CALL=true      # 是否启用接口校验
+TIMEOUT=5                 # 接口超时时间（秒）
+OFFLINE_MODE=false        # 离线模式（仅本地校验）
 
 # 颜色定义
 RED='\033[0;31m'
@@ -12,6 +18,32 @@ NC='\033[0m' # No Color
 USER_NAME=$(git config user.name)
 USER_EMAIL=$(git config user.email)
 
+# ========== 本地校验函数 ==========
+# 本地快速校验用户名格式
+local_validate_user() {
+    local name="$1"
+    local is_valid=false
+
+    # 检查是否为中文字符（2-4个）
+    if command -v perl >/dev/null 2>&1; then
+        if perl -e 'exit 1 unless $ARGV[0] =~ /^[\x{4e00}-\x{9fa5}]{2,4}$/u' "$name" 2>/dev/null; then
+            is_valid=true
+        elif perl -e 'exit 1 unless $ARGV[0] =~ /^[a-zA-Z ]{2,20}$/' "$name" 2>/dev/null; then
+            is_valid=true
+        fi
+    else
+        # 降级方案：使用基本正则
+        if echo "$name" | grep -qE '^[一-龥]{2,4}$' 2>/dev/null; then
+            is_valid=true
+        elif echo "$name" | grep -qE '^[a-zA-Z ]{2,20}$'; then
+            is_valid=true
+        fi
+    fi
+
+    [ "$is_valid" = true ]
+}
+
+# ========== 开始校验 ==========
 echo "========================================"
 echo "Git 提交前校验"
 echo "========================================"
@@ -23,31 +55,11 @@ if [ -z "$USER_NAME" ]; then
     exit 1
 fi
 
-# 校验用户名格式
-# 支持：2-4个中文字符，或 2-20个英文字符（可包含空格）
-# 使用 POSIX 兼容的方式检查
-is_valid=false
+# ========== [1/2] 本地校验 ==========
+echo "[1/2] 执行本地校验..."
 
-# 检查是否为中文字符（2-4个）
-# 使用 printf 和 hexdump 来检查 UTF-8 编码的中文字符
-if command -v perl >/dev/null 2>&1; then
-    # 使用 Perl 进行更准确的 Unicode 校验
-    if perl -e 'exit 1 unless $ARGV[0] =~ /^[\x{4e00}-\x{9fa5}]{2,4}$/u' "$USER_NAME" 2>/dev/null; then
-        is_valid=true
-    elif perl -e 'exit 1 unless $ARGV[0] =~ /^[a-zA-Z ]{2,20}$/' "$USER_NAME" 2>/dev/null; then
-        is_valid=true
-    fi
-else
-    # 降级方案：使用基本正则
-    # 中文检测：使用字节范围粗略估计
-    if echo "$USER_NAME" | grep -qE '^[一-龥]{2,4}$' 2>/dev/null; then
-        is_valid=true
-    elif echo "$USER_NAME" | grep -qE '^[a-zA-Z ]{2,20}$'; then
-        is_valid=true
-    fi
-fi
-
-if [ "$is_valid" = false ]; then
+# 本地快速校验
+if ! local_validate_user "$USER_NAME"; then
     echo -e "${RED}错误：Git 用户名格式不符合规范${NC}"
     echo "当前用户名: $USER_NAME"
     echo ""
@@ -60,16 +72,60 @@ if [ "$is_valid" = false ]; then
     exit 1
 fi
 
-echo -e "${GREEN}✓ 用户名格式校验通过: $USER_NAME${NC}"
+echo -e "${GREEN}✓ 本地校验通过: $USER_NAME${NC}"
 
 # 可选：检查邮箱格式（如果配置了）
 if [ -n "$USER_EMAIL" ]; then
-    # 简单的邮箱格式校验
     if echo "$USER_EMAIL" | grep -qE '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
         echo -e "${GREEN}✓ 邮箱格式校验通过: $USER_EMAIL${NC}"
     else
         echo -e "${YELLOW}⚠ 警告：邮箱格式可能不正确: $USER_EMAIL${NC}"
     fi
+fi
+
+# ========== [2/2] 接口校验（可选）==========
+if [ "$ENABLE_API_CALL" = true ] && [ "$OFFLINE_MODE" = false ]; then
+    echo "[2/2] 执行服务端校验..."
+
+    # 构造请求参数
+    PROJECT_NAME=$(basename "$(git rev-parse --show-toplevel)")
+    BRANCH_NAME=$(git branch --show-current)
+
+    # 发送请求（使用 GET 方式，避免 JSON 构造复杂性）
+    RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -X POST "$API_URL" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "userName=$(echo "$USER_NAME" | sed 's/ /%20/g')" \
+        -d "userEmail=$(echo "$USER_EMAIL" | sed 's/ /%20/g')" \
+        --max-time $TIMEOUT 2>/dev/null || echo "")
+
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    BODY=$(echo "$RESPONSE" | sed '$d')
+
+    # 处理响应
+    if [ "$HTTP_CODE" = "200" ] && [ -n "$BODY" ]; then
+        # 解析结果（使用简单的 grep 提取 valid 字段）
+        if echo "$BODY" | grep -q '"valid":true'; then
+            echo -e "${GREEN}✓ 服务端校验通过${NC}"
+        else
+            echo -e "${RED}❌ 服务端校验失败：${NC}"
+            # 提取错误信息
+            ERRORS=$(echo "$BODY" | grep -o '"errors":\[[^]]*\]' | sed 's/"errors":\[//;s/\]//' | tr ',' '\n' | sed 's/"//g')
+            if [ -n "$ERRORS" ]; then
+                echo "$ERRORS" | while read -r error; do
+                    echo "   - $error"
+                done
+            else
+                echo "   $BODY"
+            fi
+            exit 1
+        fi
+    else
+        # 接口调用失败，降级为仅本地校验
+        echo -e "${YELLOW}⚠ 服务端校验不可用（HTTP ${HTTP_CODE:-无响应}），使用本地校验结果${NC}"
+    fi
+else
+    echo "[2/2] 跳过服务端校验（离线模式）"
 fi
 
 echo "========================================"
