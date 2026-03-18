@@ -1,0 +1,28 @@
+server:
+  port: 8088
+  tomcat:
+    threads:
+      max: 50
+    connection-timeout: 5s
+
+spring:
+  application:
+    name: git-validate-service
+
+# 日志配置
+logging:
+  level:
+    com.lendea.githook: INFO
+    org.springframework.web: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

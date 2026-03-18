@@ -1,0 +1,14 @@
+
+server:
+  port: 8080
+
+
+management:
+  security:
+    enabled: false
+  endpoint:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: prometheus,health

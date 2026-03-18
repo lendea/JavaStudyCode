@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/toolkit/pom.xml" />
+        <option value="$PROJECT_DIR$/java_netty/pom.xml" />
+        <option value="$PROJECT_DIR$/java_design_pattern/pom.xml" />
+        <option value="$PROJECT_DIR$/java_common_mistakes/pom.xml" />
+        <option value="$PROJECT_DIR$/concurrent/pom.xml" />
+        <option value="$PROJECT_DIR$/kafka_demo/pom.xml" />
+        <option value="$PROJECT_DIR$/rmi/pom.xml" />
+        <option value="$PROJECT_DIR$/auth/pom.xml" />
+        <option value="$PROJECT_DIR$/springsecurity_dmeo/pom.xml" />
+        <option value="$PROJECT_DIR$/springsecurity_demo02/pom.xml" />
+        <option value="$PROJECT_DIR$/micrometedemo/pom.xml" />
+        <option value="$PROJECT_DIR$/ratelimit/pom.xml" />
+        <option value="$PROJECT_DIR$/pom.xml" />
+      </list>
+    </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/toolkit/pom.xml" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" project-jdk-name="1.8" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>

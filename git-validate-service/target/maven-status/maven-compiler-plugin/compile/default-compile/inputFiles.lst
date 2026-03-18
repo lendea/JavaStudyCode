@@ -1,0 +1,5 @@
+/Users/lendea/workspace/practise/JavaStudyCode/git-validate-service/src/main/java/com/lendea/githook/entity/ValidateResult.java
+/Users/lendea/workspace/practise/JavaStudyCode/git-validate-service/src/main/java/com/lendea/githook/entity/GitCommitRequest.java
+/Users/lendea/workspace/practise/JavaStudyCode/git-validate-service/src/main/java/com/lendea/githook/GitValidateApplication.java
+/Users/lendea/workspace/practise/JavaStudyCode/git-validate-service/src/main/java/com/lendea/githook/service/ValidateService.java
+/Users/lendea/workspace/practise/JavaStudyCode/git-validate-service/src/main/java/com/lendea/githook/controller/GitValidateController.java

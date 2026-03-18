@@ -1,0 +1,6 @@
+com/lendea/githook/entity/ValidateResult.class
+com/lendea/githook/service/ValidateService.class
+com/lendea/githook/GitValidateApplication.class
+com/lendea/githook/entity/ValidateResult$ValidateResultBuilder.class
+com/lendea/githook/entity/GitCommitRequest.class
+com/lendea/githook/controller/GitValidateController.class
