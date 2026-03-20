@@ -1,0 +1,74 @@
+stages:
+  - validate
+
+variables:
+  GIT_DEPTH: 0  # 获取完整提交历史
+
+git-commit-validate:
+  stage: validate
+  image: alpine/git
+  before_script:
+    - apk add --no-cache bash grep
+  script:
+    - echo "========================================"
+    - echo "GitLab CI Git 信息校验"
+    - echo "========================================"
+    - |
+      # 获取提交信息
+      USER_NAME=$(git log -1 --pretty=%an)
+      USER_EMAIL=$(git log -1 --pretty=%ae)
+      COMMIT_MSG=$(git log -1 --pretty=%B | head -n1)
+
+      echo "提交者: $USER_NAME <$USER_EMAIL>"
+      echo "提交信息: $COMMIT_MSG"
+      echo ""
+
+      # ===== 校验用户名 =====
+      is_valid=false
+
+      # 检查中文 2-4 个字符
+      if echo "$USER_NAME" | grep -qE '^[一-龥]{2,4}$'; then
+          is_valid=true
+      fi
+
+      # 检查英文 2-20 个字符
+      if echo "$USER_NAME" | grep -qE '^[a-zA-Z ]{2,20}$'; then
+          is_valid=true
+      fi
+
+      if [ "$is_valid" = false ]; then
+          echo "❌ 错误：用户名 '$USER_NAME' 格式不符合规范"
+          echo "规范：2-4个中文 或 2-20个英文字符"
+          exit 1
+      fi
+
+      echo "✓ 用户名校验通过: $USER_NAME"
+
+      # ===== 校验 Commit Message =====
+      msg_len=${#COMMIT_MSG}
+
+      if [ "$msg_len" -lt 10 ] || [ "$msg_len" -gt 100 ]; then
+          echo "❌ 错误：Commit message 长度应为 10-100 字符，当前: $msg_len"
+          exit 1
+      fi
+
+      if [[ "$COMMIT_MSG" =~ ^[[:space:]] ]] || [[ "$COMMIT_MSG" =~ [[:space:]]$ ]]; then
+          echo "❌ 错误：Commit message 不能以空格开头或结尾"
+          exit 1
+      fi
+
+      if [[ "$COMMIT_MSG" =~ [。.]$ ]]; then
+          echo "❌ 错误：Commit message 不能以句号结尾"
+          exit 1
+      fi
+
+      if ! echo "$COMMIT_MSG" | grep -qE '[一-龥a-zA-Z]'; then
+          echo "❌ 错误：Commit message 必须包含中文或英文字符"
+          exit 1
+      fi
+
+      echo "✓ Commit message 校验通过 (${msg_len}字符)"
+      echo "========================================"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
